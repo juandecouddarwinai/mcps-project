@@ -1,0 +1,64 @@
+---
+description: Project architecture and conventions for this xmcp-based MCP server template.
+globs:
+  - "src/**/*.ts"
+  - "xmcp.config.ts"
+alwaysApply: true
+---
+
+# MCP Node.js Template — Project Rules
+
+## Architecture
+
+This is an MCP (Model Context Protocol) server built with [xmcp](https://xmcp.dev/) and TypeScript.
+It wraps REST APIs into MCP tools. The client sends config via a single `x-config` HTTP header (a JSON string),
+and tools read it with two helpers:
+
+- `getConfig()` from `src/lib/config.ts` — returns `Record<string, string>` parsed from the `x-config` header.
+- `getRequest()` from `src/lib/request.ts` — returns an axios instance pre-configured with `BASE_URL`, `API_KEY`, and `AUTHORIZATION` from config.
+
+## File conventions
+
+- **Tools** live in `src/tools/`. Subdirectories are supported for code organization, but xmcp derives the default tool name from the **filename only** (not the folder path). This means `src/tools/users/list.ts` and `src/tools/channels/list.ts` would both default to `list` and **collide**.
+- **When tools live in subdirectories, you MUST set an explicit `name` in `metadata`** using the pattern `"<resource>_<action>"` (e.g. `"users_list"`, `"webhooks_create"`). The MCP spec only allows `A-Z a-z 0-9 _ - .` in tool names — **never use `/`**. This prevents name collisions and gives the LLM clear context.
+- Each tool file exports up to three things:
+  1. `schema` — a plain object of Zod fields (NOT `z.object()`, just the fields).
+  2. `metadata` — `{ name: string, description: string }` for the LLM. The `name` is **required** for tools inside subdirectories.
+  3. `default export` — the async handler function.
+- Use `zod/v3` for imports (this project pins Zod v3 via the `zod` package).
+- Use `import { type InferSchema } from "xmcp"` to type handler params.
+- `src/lib/` holds shared helpers. Only `config.ts` and `request.ts` exist today.
+- `src/middleware.ts` is express middleware applied to all requests.
+- `xmcp.config.ts` is the server config (port, CORS, paths).
+
+## Tool template
+
+```typescript
+import { z } from "zod/v3";
+import { type InferSchema } from "xmcp";
+import { getRequest } from "../lib/request";
+
+export const schema = {
+  id: z.string().describe("The resource ID"),
+};
+
+export const metadata = {
+  name: "resource_tool-name",
+  description: "Describe what this tool does for the LLM.",
+};
+
+export default async function toolName({ id }: InferSchema<typeof schema>) {
+  const request = getRequest();
+  const { data } = await request.get(`/resource/${id}`);
+  return JSON.stringify(data, null, 2);
+}
+```
+
+## Key rules
+
+- Always return strings from tool handlers (use `JSON.stringify` for objects).
+- Never use `z.object()` in the schema export — export a flat object of Zod fields.
+- Adjust import depth for `getRequest`/`getConfig` based on tool folder depth (`../lib/` for top-level tools, `../../lib/` for one level of nesting, etc.).
+- Keep tool files focused — one API action per tool.
+- Use descriptive `.describe()` on every Zod field so the LLM knows what to pass.
+- Use the `metadata.description` to tell the LLM when and why to use the tool.

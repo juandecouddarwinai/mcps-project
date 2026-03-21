@@ -1,0 +1,40 @@
+---
+description: Validates all tools follow project conventions. Run when asked to check, audit, or validate the codebase.
+globs:
+  - "src/tools/**/*.ts"
+alwaysApply: false
+---
+
+# Tool Health Check
+
+When the user asks to check, audit, or validate the project, run through every item below. Report issues grouped by file. If everything passes, say so.
+
+**Before starting, read the following rules for the full conventions:**
+- @project.mdc — file conventions, tool template, key rules
+- @api-to-tools.mdc — tool generation rules (schema, metadata, naming, imports)
+
+## Checklist
+
+1. **Unique `metadata.name`** — every tool has an explicit `name`, no duplicates, subdirectory tools use `"<resource>_<action>"` format
+2. **Valid `metadata.name` characters** — names must only contain `A-Z a-z 0-9 _ - .` per the MCP spec. **No `/` or other special characters.** Flag any tool name that violates this.
+3. **`metadata.description`** — exists, 1-2 useful sentences for an LLM, not empty or placeholder
+4. **Flat Zod schema** — not wrapped in `z.object()`, every field has `.describe()`
+5. **No unused imports or variables** — especially `getConfig` / `getRequest`
+6. **Correct import paths** — relative depth matches folder nesting
+7. **Handler returns a string** — objects use `JSON.stringify(data, null, 2)`
+8. **One tool per file** — no multiple handlers or side effects
+9. **No non-tool files in `src/tools/`** — helpers go in `src/lib/`
+10. **Build passes** — run `npm run build`, confirm zero errors
+
+## Output format
+
+```
+✓ metadata.name — all tools have unique names
+✗ unused import — src/tools/webhooks/create.ts: `getConfig` imported but never used
+✓ schema .describe() — all fields documented
+...
+
+Build: ✓ passed
+```
+
+List every issue found. If there are none, confirm the codebase is clean.
