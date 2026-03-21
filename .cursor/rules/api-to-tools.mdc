@@ -1,0 +1,117 @@
+---
+description: Workflow for converting API documentation into MCP tools. Triggered when the user provides an API docs URL.
+globs:
+  - "src/tools/**/*.ts"
+alwaysApply: false
+---
+
+# API-to-MCP-Tools Workflow
+
+When the user provides a link to API documentation and asks you to generate MCP tools from it, follow this workflow exactly.
+
+## Step 1: Read and inventory
+
+Fetch/read the API documentation. Build a numbered list of every endpoint, grouped by resource. Format:
+
+```
+Resource: Users
+  1. GET    /users          — List all users
+  2. GET    /users/:id      — Get user by ID
+  3. POST   /users          — Create a user
+  4. PUT    /users/:id      — Update a user
+  5. DELETE /users/:id      — Delete a user
+
+Resource: Posts
+  6. GET    /posts          — List all posts
+  ...
+```
+
+Count the total endpoints.
+
+## Step 2: Check scope — ALWAYS ask if more than 5 endpoints
+
+**If the API has more than 5 endpoints, you MUST stop and ask the user which ones to implement.**
+
+Present the numbered list and ask:
+
+> I found **N endpoints** in this API. Which ones should I turn into MCP tools?
+> You can reply with numbers (e.g. "1, 3, 5"), a range ("1-5"), a resource name ("all Users endpoints"), or "all".
+
+**Do NOT proceed until the user responds.** Never silently generate all tools for a large API.
+
+If the API has 5 or fewer endpoints, confirm the list briefly and proceed.
+
+## Step 3: Plan the file structure
+
+For the selected endpoints, propose filenames and a folder structure inside `src/tools/`. Use the conventions:
+
+- Group by resource if there are multiple resources: `src/tools/users/list.ts`, `src/tools/users/get.ts`.
+- If all endpoints are from one resource or ungrouped, put them flat in `src/tools/`.
+- Tool filenames should be `verb.ts` or `verb-noun.ts` — short, kebab-case, descriptive.
+- Use REST naming: `list`, `get`, `create`, `update`, `delete` (not `fetch`, `add`, `modify`, `remove`).
+
+Present the proposed structure to the user and confirm before writing files.
+
+## Step 4: Generate each tool
+
+For each selected endpoint, create a tool file following this exact template:
+
+```typescript
+import { z } from "zod/v3";
+import { type InferSchema } from "xmcp";
+import { getRequest } from "<relative-path>/lib/request";
+
+export const schema = {
+  // One Zod field per parameter (path params, query params, body fields).
+  // Always add .describe() with a clear explanation.
+};
+
+export const metadata = {
+  name: "<resource>/<action>",
+  description: "<What this tool does, written for an LLM to understand when to use it.>",
+};
+
+export default async function <functionName>(<destructured params>: InferSchema<typeof schema>) {
+  const request = getRequest();
+
+  // Use the appropriate HTTP method:
+  //   GET    → request.get(url, { params })
+  //   POST   → request.post(url, body)
+  //   PUT    → request.put(url, body)
+  //   PATCH  → request.patch(url, body)
+  //   DELETE → request.delete(url)
+
+  const { data } = await request.<method>(<url>);
+  return JSON.stringify(data, null, 2);
+}
+```
+
+### Rules for generating tools
+
+- **Schema fields**: Map path parameters, required query parameters, and required body fields to schema fields. Optional params use `.optional()`.
+- **Descriptions**: Every `.describe()` should say what the field is and give an example value if helpful.
+- **metadata.name**: Required for tools inside subdirectories. Use the pattern `"<resource>/<action>"` matching the folder/file path (e.g. `src/tools/users/list.ts` → `name: "users/list"`). xmcp only uses the filename as the default name, so without an explicit `name`, tools like `users/list.ts` and `channels/list.ts` would both register as `list` and collide.
+- **metadata.description**: Write 1-2 sentences. Say what the tool does and when the LLM should use it. Mention what config keys are needed in `x-config` (at minimum `BASE_URL`).
+- **Error handling**: Do NOT add try/catch unless the API has known error cases worth surfacing. Keep tools simple — errors propagate naturally.
+- **Return value**: Always `JSON.stringify(data, null, 2)` for object responses. Return plain strings for string responses.
+- **Function name**: camelCase version of the filename.
+- **Import depth**: Adjust `../lib/` vs `../../lib/` based on folder nesting depth.
+
+## Step 5: Verify
+
+After generating all tools, run `npm run build` to confirm there are no type errors.
+If there are errors, fix them before reporting completion.
+
+## Step 6: Summarize
+
+Tell the user:
+- How many tools were created and where they live.
+- What `x-config` keys the tools expect (e.g. `BASE_URL`, `API_KEY`).
+- An example MCP client config snippet with the `x-config` header pre-filled for their API.
+
+## Important
+
+- **Never generate all tools for a large API without asking.** The user's API may have 50+ endpoints. Always ask.
+- **One tool per file.** Never put multiple endpoint handlers in one file.
+- **Don't over-engineer.** No abstractions, no shared helpers beyond `getRequest`/`getConfig`, no error wrappers. Each tool is self-contained.
+- **Don't modify existing files** unless the user asks. Only create new tool files.
