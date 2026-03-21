@@ -1,0 +1,18 @@
+{
+  "name": "mcp-nodejs-template",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "xmcp dev",
+    "build": "xmcp build",
+    "start": "node dist/http.js"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "xmcp": "^0.6.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}
