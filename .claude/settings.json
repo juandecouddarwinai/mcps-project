@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "calcom": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "x-config": "{\"BASE_URL\":\"https://api.cal.com/v2\",\"AUTHORIZATION\":\"Bearer cal_live_9851a3a20b456381cf312a5632c2382e\",\"PHONE_NUMBER\":\"+1234567890\"}"
+      }
+    }
+  }
+}
