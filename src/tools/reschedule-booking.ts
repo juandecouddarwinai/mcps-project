@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod/v4"
 import { type InferSchema } from "xmcp"
 import { getRequest } from "../lib/request"
 
@@ -9,6 +9,7 @@ export const schema = {
 }
 
 export const metadata = {
+  name: "bookings_reschedule",
   description: "Reschedules an existing Cal.com booking to a new time slot.",
 }
 

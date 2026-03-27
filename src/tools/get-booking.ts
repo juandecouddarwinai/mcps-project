@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod/v4"
 import { type InferSchema } from "xmcp"
 import { getRequest } from "../lib/request"
 
@@ -7,6 +7,7 @@ export const schema = {
 }
 
 export const metadata = {
+  name: "bookings_get",
   description: "Retrieves the details of a specific Cal.com booking by its UID.",
 }
 

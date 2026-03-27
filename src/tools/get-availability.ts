@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod/v4"
 import { type InferSchema } from "xmcp"
 import { getRequest } from "../lib/request"
 
@@ -10,6 +10,7 @@ export const schema = {
 }
 
 export const metadata = {
+  name: "slots_get",
   description: "Returns available time slots for a given Cal.com event type within a date range.",
 }
 

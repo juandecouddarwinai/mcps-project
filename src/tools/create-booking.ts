@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod/v4"
 import { type InferSchema } from "xmcp"
 import { getConfig } from "../lib/config"
 import { getRequest } from "../lib/request"
@@ -14,6 +14,7 @@ export const schema = {
 }
 
 export const metadata = {
+  name: "bookings_create",
   description:
     "Creates a new booking on Cal.com for a client. Requires the client's name, email, timezone, and the event type ID. Phone number can be passed per call or defaults to PHONE_NUMBER from config.",
 }
